@@ -19,9 +19,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/deepseek")
 public class DeepSeekController {
-    private static final String DEEP_SEEK_API_KEY = "Bearer sk-eb0fbb4b860f434daf1f93dec1df8eba";
     //输入你的key
-//    private static final String DEEP_SEEK_API_KEY = "Bearer ";
+    private static final String DEEP_SEEK_API_KEY = "Bearer ";
 
 
     private final WebClient webClientByDeepSeek = WebClient.builder()
