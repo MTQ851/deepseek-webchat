@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deepseek Chat</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/github-dark.min.css">
+  <link rel="icon" href="https://tool.kertennet.com/deepseek/deepseek.png" type="image/png" />
+  <style>
+    :root {
+      --bg-color: #f5f7fa;
+      --card-color: #ffffff;
+      --robot-color: #f0f0f0;
+      --user-color: #007aff;
+      --text-color: #333;
+      --border-radius: 12px;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .chat-container {
+      flex: 1;
+      max-width: 900px;
+      width: 95%;
+      margin: 30px auto;
+      background: var(--card-color);
+      border-radius: var(--border-radius);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 12px 18px;
+      border-radius: var(--border-radius);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .robot {
+      align-self: flex-start;
+      background-color: var(--robot-color);
+    }
+
+    .user {
+      align-self: flex-end;
+      background-color: var(--user-color);
+      color: #fff;
+    }
+
+    .messages pre {
+      overflow-x: auto;
+      background: #1e1e1e;
+      padding: 12px;
+      border-radius: var(--border-radius);
+      color: #eee;
+    }
+
+    .input-area {
+      display: flex;
+      padding: 16px;
+      border-top: 1px solid #eee;
+      background: #fafafa;
+    }
+
+    .input-area textarea {
+      flex: 1;
+      resize: none;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: var(--border-radius);
+      outline: none;
+      background: #fff;
+      color: #000;
+    }
+
+    .input-area button {
+      margin-left: 12px;
+      padding: 0 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: var(--border-radius);
+      background: linear-gradient(135deg, #007aff, #00c6ff);
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    .input-area button:hover {
+      background: linear-gradient(135deg, #0066d6, #00aaff);
+    }
+
+    .hljs {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  </style>
+  <script defer src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+</head>
+<body>
+<div class="chat-container">
+  <div class="messages" id="messages"></div>
+  <div class="input-area">
+    <textarea id="input" rows="2" placeholder="请输入您的问题"></textarea>
+    <button onclick="sendMessage()">发送</button>
+  </div>
+</div>
+
+<script defer>
+  document.addEventListener('DOMContentLoaded', function () {
+    const md = window.markdownit({
+      highlight: function (str, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+          try {
+            return '<pre class="hljs"><code>' +
+                    hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
+                    '</code></pre>';
+          } catch (_) { }
+        }
+        return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>';
+      }
+    });
+
+    const container = document.getElementById('messages');
+
+    function addMessage(role, content, isMarkdown = false) {
+      const msgDiv = document.createElement('div');
+      msgDiv.classList.add('message', role);
+      msgDiv.innerHTML = isMarkdown ? md.render(content) : content;
+      container.appendChild(msgDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    window.sendMessage = function () {
+      const inputElem = document.getElementById("input");
+      const prompt = inputElem.value.trim();
+      if (!prompt) return;
+      addMessage('user', prompt);
+      inputElem.value = "";
+
+      const robotDiv = document.createElement('div');
+      robotDiv.classList.add('message', 'robot');
+      container.appendChild(robotDiv);
+
+      let markdownContent = "";
+      fetchRobotResponse(prompt, chunk => {
+        markdownContent += chunk;
+        robotDiv.innerHTML = md.render(markdownContent);
+      }, () => {
+        addMessage('robot', '发生错误，无法获取响应。', true);
+      });
+    };
+
+    document.getElementById("input").addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    async function fetchRobotResponse(prompt, onData, onError) {
+      const url = `http://127.0.0.1:8080/api/deepseek/stream?prompt=${encodeURIComponent(prompt)}`;
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+        });
+
+        if (!response.ok) throw new Error('网络错误: ' + response.status);
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+
+          chunk.split('\n').forEach(line => {
+            if (line.startsWith('data:')) {
+              const dataStr = line.replace(/^data:\s*/, '');
+              if (dataStr !== "[DONE]") {
+                try {
+                  const data = JSON.parse(dataStr);
+                  if (data?.choices?.[0]?.delta?.content) {
+                    onData(data.choices[0].delta.content);
+                  }
+                } catch (e) {
+                  console.error("解析错误", e);
+                }
+              }
+            }
+          });
+        }
+      } catch (err) {
+        console.error("请求失败:", err);
+        if (onError) onError(err);
+      }
+    }
+  });
+</script>
+</body>
+</html>
