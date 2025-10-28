@@ -79,5 +79,3 @@ deepseek-webchat/
 
 本项目基于 **MIT License** 开源，
 欢迎二次开发与学习使用 🤝
-
-```
