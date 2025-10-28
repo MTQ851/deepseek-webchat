@@ -1,3 +1,9 @@
+# Deepseek WebChat
+
+[🇨🇳 中文说明](./README-cn.md) | [🇺🇸 English README](./README.md)
+
+---
+
 ### 📖 Introduction
 
 **Deepseek WebChat** is a lightweight web chat system built with **Spring Boot (backend)** and **HTML/JavaScript (frontend)**.
