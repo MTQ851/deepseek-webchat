@@ -1,8 +1,3 @@
----
-
-````markdown
-# 💬 Deepseek WebChat
-
 [🇨🇳 中文说明](./README-cn.md) | [🇺🇸 English README](./README.md)
 
 ---
@@ -88,6 +83,3 @@ deepseek-webchat/
 ```
 
 ---
-
-是否希望我顺带帮你排一个对应的 **英文版 README.md**（风格一致、用词自然）？这样两个版本可以配套显示在仓库首页。
-```
